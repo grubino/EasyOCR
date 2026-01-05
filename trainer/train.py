@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.optim as optim
 import torch.utils.data
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 import numpy as np
 
 from utils import CTCLabelConverter, AttnLabelConverter, Averager
@@ -171,7 +171,16 @@ def train(opt, show_number = 2, amp=False):
 
     scaler = GradScaler()
     t1= time.time()
-        
+
+    # Add progress logging interval
+    log_interval = 100  # Print progress every 100 iterations
+
+    print(f'\n{"="*80}')
+    print(f'Starting training from iteration {start_iter} to {opt.num_iter}')
+    print(f'Progress logging every {log_interval} iterations')
+    print(f'Validation every {opt.valInterval} iterations')
+    print(f'{"="*80}\n')
+
     while(True):
         # train part
         optimizer.zero_grad(set_to_none=True)
@@ -219,6 +228,11 @@ def train(opt, show_number = 2, amp=False):
             torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip) 
             optimizer.step()
         loss_avg.add(cost)
+
+        # Print progress at regular intervals
+        if i % log_interval == 0:
+            elapsed_time = time.time() - start_time
+            print(f'[{i}/{opt.num_iter}] Loss: {loss_avg.val():0.5f}, Elapsed time: {elapsed_time:0.1f}s')
 
         # validation part
         if (i % opt.valInterval == 0) and (i!=0):
