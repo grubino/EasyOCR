@@ -190,14 +190,16 @@ def train(opt, show_number = 2, amp=False):
                 image_tensors, labels = train_dataset.get_batch()
                 image = image_tensors.to(device)
                 text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
+                text = text.to(device)
+                length = length.to(device)
                 batch_size = image.size(0)
 
                 if 'CTC' in opt.Prediction:
                     preds = model(image, text).log_softmax(2)
-                    preds_size = torch.IntTensor([preds.size(1)] * batch_size)
+                    preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
                     preds = preds.permute(1, 0, 2)
                     torch.backends.cudnn.enabled = False
-                    cost = criterion(preds, text.to(device), preds_size.to(device), length.to(device))
+                    cost = criterion(preds, text, preds_size, length)
                     torch.backends.cudnn.enabled = True
                 else:
                     preds = model(image, text[:, :-1])  # align with Attention.forward
@@ -212,13 +214,15 @@ def train(opt, show_number = 2, amp=False):
             image_tensors, labels = train_dataset.get_batch()
             image = image_tensors.to(device)
             text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
+            text = text.to(device)
+            length = length.to(device)
             batch_size = image.size(0)
             if 'CTC' in opt.Prediction:
                 preds = model(image, text).log_softmax(2)
-                preds_size = torch.IntTensor([preds.size(1)] * batch_size)
+                preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
                 preds = preds.permute(1, 0, 2)
                 torch.backends.cudnn.enabled = False
-                cost = criterion(preds, text.to(device), preds_size.to(device), length.to(device))
+                cost = criterion(preds, text, preds_size, length)
                 torch.backends.cudnn.enabled = True
             else:
                 preds = model(image, text[:, :-1])  # align with Attention.forward

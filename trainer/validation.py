@@ -31,14 +31,16 @@ def validation(model, criterion, evaluation_loader, converter, opt, device):
         text_for_pred = torch.LongTensor(batch_size, opt.batch_max_length + 1).fill_(0).to(device)
 
         text_for_loss, length_for_loss = converter.encode(labels, batch_max_length=opt.batch_max_length)
-        
+        text_for_loss = text_for_loss.to(device)
+        length_for_loss = length_for_loss.to(device)
+
         start_time = time.time()
         if 'CTC' in opt.Prediction:
             preds = model(image, text_for_pred)
             forward_time = time.time() - start_time
 
             # Calculate evaluation loss for CTC decoder.
-            preds_size = torch.IntTensor([preds.size(1)] * batch_size)
+            preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
             # permute 'preds' to use CTCloss format
             cost = criterion(preds.log_softmax(2).permute(1, 0, 2), text_for_loss, preds_size, length_for_loss)
 
@@ -55,7 +57,7 @@ def validation(model, criterion, evaluation_loader, converter, opt, device):
             forward_time = time.time() - start_time
 
             preds = preds[:, :text_for_loss.shape[1] - 1, :]
-            target = text_for_loss[:, 1:]  # without [GO] Symbol
+            target = text_for_loss[:, 1:].to(device)  # without [GO] Symbol
             cost = criterion(preds.contiguous().view(-1, preds.shape[-1]), target.contiguous().view(-1))
 
             # select max probabilty (greedy decoding) then decode index to character
